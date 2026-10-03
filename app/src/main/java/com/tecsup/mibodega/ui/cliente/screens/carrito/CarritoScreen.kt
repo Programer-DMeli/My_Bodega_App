@@ -17,14 +17,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,14 +43,21 @@ import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
 import com.tecsup.mibodega.ui.componentes.BotonPrimario
 import com.tecsup.mibodega.ui.componentes.SelectorCantidad
 import com.tecsup.mibodega.ui.theme.BodegaTheme
+import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
 
 private const val COSTO_DELIVERY = 4.00
 
 /**
- * Pantalla 5: Mi carrito (mockup "Cliente").
- * No guarda estado propio: el carrito viene de ClienteApp y cualquier
- * cambio (sumar, restar, eliminar) se avisa hacia arriba con callbacks.
+ * Pantalla 6: Mi carrito (mockup "Cliente").
+ *
+ * No guarda estado propio: el carrito vive en AppNavegacion (state hoisting) y
+ * cada cambio (sumar, restar, eliminar) se avisa hacia arriba con callbacks.
+ *
+ * El cálculo del subtotal y el total es REACTIVO: `carrito` es un estado de
+ * Compose, así que al cambiar una cantidad el NavHost recompone esta pantalla
+ * y los importes se recalculan solos. Aquí solo se memoriza el resultado con
+ * `remember(carrito)` para no recorrer la lista en cada recomposición.
  */
 @Composable
 fun CarritoScreen(
@@ -57,36 +68,51 @@ fun CarritoScreen(
     onEliminar: (Producto) -> Unit,
     onContinuarPedido: () -> Unit
 ) {
-    val subtotal = carrito.sumOf { it.producto.precio * it.cantidad }
-    val total = subtotal + COSTO_DELIVERY
+    // Derivado del estado: se recalcula solo cuando cambia la lista.
+    val subtotal by remember(carrito) {
+        derivedStateOf { carrito.sumOf { it.producto.precio * it.cantidad } }
+    }
+    // Con el carrito vacío no se cobra delivery.
+    val delivery = if (carrito.isEmpty()) 0.0 else COSTO_DELIVERY
+    val total by remember(subtotal, delivery) {
+        derivedStateOf { subtotal + delivery }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .safeDrawingPadding()
     ) {
-        EncabezadoCarrito(onVolver = onVolver)
+        EncabezadoCarrito(
+            cantidadItems = carrito.sumOf { it.cantidad },
+            onVolver = onVolver
+        )
 
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
-        ) {
-            items(carrito, key = { it.producto.id }) { item ->
-                FilaCarrito(
-                    item = item,
-                    onIncrementar = { onIncrementar(item.producto) },
-                    onDecrementar = { onDecrementar(item.producto) },
-                    onEliminar = { onEliminar(item.producto) }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        if (carrito.isEmpty()) {
+            CarritoVacio(modifier = Modifier.weight(1f))
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(vertical = 8.dp)
+            ) {
+                items(carrito, key = { it.producto.id }) { item ->
+                    FilaCarrito(
+                        item = item,
+                        onIncrementar = { onIncrementar(item.producto) },
+                        onDecrementar = { onDecrementar(item.producto) },
+                        onEliminar = { onEliminar(item.producto) }
+                    )
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                }
             }
         }
 
         ResumenYBoton(
+            cantidadItems = carrito.sumOf { it.cantidad },
             subtotal = subtotal,
-            delivery = COSTO_DELIVERY,
+            delivery = delivery,
             total = total,
             onContinuarPedido = onContinuarPedido
         )
@@ -96,7 +122,7 @@ fun CarritoScreen(
 // Sub-composables PRIVADOS: solo los usa esta pantalla.
 
 @Composable
-private fun EncabezadoCarrito(onVolver: () -> Unit) {
+private fun EncabezadoCarrito(cantidadItems: Int, onVolver: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -104,12 +130,49 @@ private fun EncabezadoCarrito(onVolver: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = onVolver) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
         }
         Text(
             text = "Mi carrito",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold
+        )
+        Spacer(Modifier.width(8.dp))
+        if (cantidadItems > 0) {
+            Text(
+                text = "($cantidadItems)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun CarritoVacio(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.ShoppingCart,
+            contentDescription = null,
+            tint = GrisClaro,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Tu carrito está vacío",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = "Agrega productos desde el catálogo",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -144,9 +207,16 @@ private fun FilaCarrito(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "S/ %.2f".format(item.producto.precio),
+                text = "S/ %.2f c/u".format(item.producto.precio),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // Importe de la línea: precio x cantidad, reactivo.
+            Text(
+                text = "S/ %.2f".format(item.producto.precio * item.cantidad),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = VerdeBodega
             )
         }
 
@@ -168,13 +238,14 @@ private fun FilaCarrito(
 
 @Composable
 private fun ResumenYBoton(
+    cantidadItems: Int,
     subtotal: Double,
     delivery: Double,
     total: Double,
     onContinuarPedido: () -> Unit
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
-        FilaResumen(etiqueta = "Subtotal", valor = subtotal)
+        FilaResumen(etiqueta = "Subtotal ($cantidadItems items)", valor = subtotal)
         FilaResumen(etiqueta = "Costo de delivery", valor = delivery)
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -198,6 +269,7 @@ private fun ResumenYBoton(
 
         BotonPrimario(
             texto = "Continuar pedido",
+            habilitado = cantidadItems > 0,
             onClick = onContinuarPedido
         )
     }
