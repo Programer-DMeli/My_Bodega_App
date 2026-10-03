@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.ShoppingBasket
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -21,7 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,15 +35,22 @@ import androidx.compose.ui.unit.sp
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
 import com.tecsup.mibodega.ui.componentes.BotonPrimario
+import com.tecsup.mibodega.ui.componentes.BotonSecundario
 import com.tecsup.mibodega.ui.componentes.SelectorCantidad
 import com.tecsup.mibodega.ui.theme.BodegaTheme
+import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.RojoPrecio
+import com.tecsup.mibodega.ui.theme.VerdeBodega
 
 /**
- * Pantalla 4: Detalle del producto (mockup "Cliente").
- * Guarda su propia cantidad seleccionada (remember) mientras el usuario
- * decide cuánto quiere; solo al tocar "Agregar al carrito" le avisa
- * a ClienteApp cuánto agregar.
+ * Pantalla 5: Detalle del producto (mockup "Cliente").
+ *
+ * No conoce el NavController ni sabe de dónde salió el producto: recibe el
+ * [Producto] ya resuelto (el id viaja por la ruta y lo resuelve AppNavegacion)
+ * y solo avisa lo que el usuario decide. Es una pantalla "hoja".
+ *
+ * La cantidad es estado local con `rememberSaveable` porque nadie más la
+ * necesita; solo al tocar "Agregar al carrito" se le avisa a AppNavegacion.
  */
 @Composable
 fun DetalleProductoScreen(
@@ -49,7 +58,7 @@ fun DetalleProductoScreen(
     onVolver: () -> Unit,
     onAgregarAlCarrito: (Producto, Int) -> Unit
 ) {
-    var cantidad by remember { mutableStateOf(1) }
+    var cantidad by rememberSaveable { mutableStateOf(1) }
 
     Column(
         modifier = Modifier
@@ -90,11 +99,23 @@ fun DetalleProductoScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            SelectorCantidad(
-                cantidad = cantidad,
-                onIncrementar = { cantidad++ },
-                onDecrementar = { if (cantidad > 1) cantidad-- }
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SelectorCantidad(
+                    cantidad = cantidad,
+                    onIncrementar = { cantidad++ },
+                    onDecrementar = { if (cantidad > 1) cantidad-- }
+                )
+                // Se recalcula solo al mover el selector.
+                Text(
+                    text = "Subtotal: S/ %.2f".format(producto.precio * cantidad),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = VerdeBodega
+                )
+            }
 
             Spacer(Modifier.weight(1f))
 
@@ -105,6 +126,39 @@ fun DetalleProductoScreen(
 
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+/**
+ * Se muestra cuando la ruta trae un id que no existe en el catálogo
+ * (por ejemplo, una notificación con un producto ya dado de baja).
+ */
+@Composable
+fun ProductoNoEncontradoScreen(onVolver: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .safeDrawingPadding()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.ShoppingBasket,
+            contentDescription = null,
+            tint = GrisClaro,
+            modifier = Modifier.size(72.dp)
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Producto no encontrado",
+            style = MaterialTheme.typography.titleLarge
+        )
+        Spacer(Modifier.height(24.dp))
+        BotonSecundario(
+            texto = "Volver al catálogo",
+            onClick = onVolver
+        )
     }
 }
 

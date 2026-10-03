@@ -25,6 +25,7 @@ import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
 import com.tecsup.mibodega.ui.cliente.screens.bienvenida.BienvenidaScreen
 import com.tecsup.mibodega.ui.cliente.screens.carrito.CarritoScreen
 import com.tecsup.mibodega.ui.cliente.screens.detalle.DetalleProductoScreen
+import com.tecsup.mibodega.ui.cliente.screens.detalle.ProductoNoEncontradoScreen
 import com.tecsup.mibodega.ui.cliente.screens.inicio.InicioScreen
 import com.tecsup.mibodega.ui.cliente.screens.login.LoginScreen
 import com.tecsup.mibodega.ui.cliente.screens.registro.RegistroScreen
@@ -145,7 +146,11 @@ fun AppNavegacion() {
                     cantidadCarrito = carrito.sumOf { it.cantidad },
                     onVerCarrito = { navController.navigate(Rutas.CARRITO) },
                     onProductoClick = { producto ->
-                        navController.navigate(Rutas.detalle(producto.id))
+                        // Ruta paramétrica: el id se interpola en la ruta
+                        // (Rutas.detalle(5) -> "detalle/5").
+                        navController.navigate(Rutas.detalle(producto.id)) {
+                            launchSingleTop = true
+                        }
                     },
                     onAgregarProducto = { producto ->
                         carrito = agregarOSumarProducto(carrito, producto, 1)
@@ -178,25 +183,33 @@ fun AppNavegacion() {
             }
 
             // ---- Pantalla 5: Detalle del producto (ruta paramétrica) ----
+            // El id viaja dentro de la ruta: "detalle/5". La pantalla NO recibe
+            // el id, recibe el Producto ya buscado (ver más abajo).
             composable(
                 route = Rutas.DETALLE,
                 arguments = listOf(
-                    navArgument(Rutas.ARG_PRODUCTO_ID) { type = NavType.IntType }
+                    navArgument(Rutas.ARG_PRODUCTO_ID) {
+                        type = NavType.IntType
+                    }
                 )
             ) { backStackEntryDetalle ->
                 val productoId =
                     backStackEntryDetalle.arguments?.getInt(Rutas.ARG_PRODUCTO_ID) ?: 0
                 val producto = listaProductosFake.firstOrNull { it.id == productoId }
-                    ?: listaProductosFake.first()
 
-                DetalleProductoScreen(
-                    producto = producto,
-                    onVolver = { navController.popBackStack() },
-                    onAgregarAlCarrito = { productoSeleccionado, cantidad ->
-                        carrito = agregarOSumarProducto(carrito, productoSeleccionado, cantidad)
-                        navController.popBackStack()
-                    }
-                )
+                if (producto == null) {
+                    // El id llegó bien tipado pero no existe en el catálogo.
+                    ProductoNoEncontradoScreen(onVolver = { navController.popBackStack() })
+                } else {
+                    DetalleProductoScreen(
+                        producto = producto,
+                        onVolver = { navController.popBackStack() },
+                        onAgregarAlCarrito = { productoSeleccionado, cantidad ->
+                            carrito = agregarOSumarProducto(carrito, productoSeleccionado, cantidad)
+                            navController.popBackStack()
+                        }
+                    )
+                }
             }
 
             // ---- Pantalla 6: Carrito ----
