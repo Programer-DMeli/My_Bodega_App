@@ -10,7 +10,10 @@ import com.tecsup.mibodega.R
  * una API, este archivo se reemplaza por un Repository real, pero las pantallas
  * no cambian porque ya reciben una `List<Producto>` como parámetro.
  */
-val listaCategorias = listOf("Todos", "Bebidas", "Abarrotes", "Snacks")
+/** Categoría "Todos": la que no filtra por categoría. */
+const val CATEGORIA_TODOS = "Todos"
+
+val listaCategorias = listOf(CATEGORIA_TODOS, "Bebidas", "Abarrotes", "Snacks")
 
 val listaProductosFake = listOf(
     Producto(

@@ -1,7 +1,5 @@
 package com.tecsup.mibodega.ui.cliente.screens.inicio
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,15 +32,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.tecsup.mibodega.ui.cliente.modelo.CATEGORIA_TODOS
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
 import com.tecsup.mibodega.ui.cliente.modelo.listaCategorias
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
+import com.tecsup.mibodega.ui.componentes.FilaCategorias
 import com.tecsup.mibodega.ui.componentes.ProductoCard
 import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
@@ -75,14 +75,21 @@ fun InicioScreen(
     onProductoClick: (Producto) -> Unit,
     onAgregarProducto: (Producto) -> Unit
 ) {
-    var categoriaSeleccionada by remember { mutableStateOf(listaCategorias.first()) }
-    var textoBusqueda by remember { mutableStateOf("") }
+// Selección única: un solo valor activo a la vez. rememberSaveable para que la
+// categoría elegida sobreviva al giro del celular y al cambiar de pestaña.
+var categoriaSeleccionada by rememberSaveable { mutableStateOf(listaCategorias.first()) }
+var textoBusqueda by rememberSaveable { mutableStateOf("") }
 
-    val productosFiltrados = productos.filter { producto ->
-        val coincideCategoria = categoriaSeleccionada == "Todos" || producto.categoria == categoriaSeleccionada
+// remember con claves: el filtrado solo se recalcula cuando cambia la lista,
+// la categoría o la búsqueda (no en cada recomposición).
+val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqueda) {
+    productos.filter { producto ->
+        val coincideCategoria =
+            categoriaSeleccionada == CATEGORIA_TODOS || producto.categoria == categoriaSeleccionada
         val coincideBusqueda = producto.nombre.contains(textoBusqueda, ignoreCase = true)
         coincideCategoria && coincideBusqueda
     }
+}
 
     Scaffold(
         // Insets y NavigationBar los pone el Scaffold principal (AppNavegacion),
@@ -131,24 +138,35 @@ fun InicioScreen(
                 )
             )
 
-            Text(
-                text = "Productos destacados",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 20.dp, bottom = 4.dp)
-            )
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(vertical = 8.dp)
+            // Filtro por categoría (selección única) + buscador: ambos alimentan la
+            // misma lista. El contador muestra que el filtro sí está actuando.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, bottom = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(listaCategorias) { categoria ->
-                    ChipCategoria(
-                        texto = categoria,
-                        seleccionado = categoria == categoriaSeleccionada,
-                        onClick = { categoriaSeleccionada = categoria }
-                    )
-                }
+                Text(
+                    text = if (categoriaSeleccionada == CATEGORIA_TODOS) {
+                        "Productos destacados"
+                    } else {
+                        categoriaSeleccionada
+                    },
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    text = "${productosFiltrados.size} items",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
+
+            FilaCategorias(
+                categorias = listaCategorias,
+                categoriaSeleccionada = categoriaSeleccionada,
+                onCategoriaSeleccionada = { categoriaSeleccionada = it }
+            )
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -176,25 +194,6 @@ fun InicioScreen(
 }
 
 // Sub-composables PRIVADOS: solo los usa esta pantalla.
-
-@Composable
-private fun ChipCategoria(
-    texto: String,
-    seleccionado: Boolean,
-    onClick: () -> Unit
-) {
-    val fondo = if (seleccionado) VerdeBodega else GrisClaro
-    val contenido = if (seleccionado) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-
-    Row(
-        modifier = Modifier
-            .background(fondo, RoundedCornerShape(20.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp)
-    ) {
-        Text(text = texto, color = contenido, fontWeight = FontWeight.Medium)
-    }
-}
 
 @Composable
 private fun MensajeSinProductos(categoria: String) {
