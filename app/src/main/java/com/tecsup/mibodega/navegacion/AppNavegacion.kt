@@ -10,7 +10,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
@@ -59,17 +60,21 @@ fun AppNavegacion() {
 
     // 2) Estado global del carrito. Se declara acá arriba porque lo usan
     //    varias pantallas (Inicio, Detalle, Carrito): es el "state hoisting".
-    var carrito by remember { mutableStateOf<List<ItemCarrito>>(emptyList()) }
+    //    rememberSaveable: con "remember" el carrito se perdería al rotar el
+    //    celular, porque un cambio de configuración recrea la Activity.
+    var carrito by rememberSaveable(stateSaver = carritoSaver) {
+        mutableStateOf<List<ItemCarrito>>(emptyList())
+    }
 
     // Datos que captura la pantalla de entrega y lee la confirmación.
-    var datosEntrega by remember {
+    var datosEntrega by rememberSaveable(stateSaver = datosEntregaSaver) {
         mutableStateOf(
             DatosEntrega(direccion = "", referencia = "", metodoPago = "", horario = "")
         )
     }
-    var codigoPedido by remember { mutableStateOf("") }
+    var codigoPedido by rememberSaveable { mutableStateOf("") }
     // El total se congela al confirmar: el carrito se vacía al volver al inicio.
-    var totalPedido by remember { mutableStateOf(0.0) }
+    var totalPedido by rememberSaveable { mutableStateOf(0.0) }
 
     // 3) Destino visible ahora mismo: es lo que marca la pestaña seleccionada
     //    en la barra (el estado del NavHost leído como State, sin ViewModel).
@@ -301,6 +306,36 @@ fun AppNavegacion() {
 /** Código de pedido fake: "MB-" seguido de 4 dígitos. */
 private fun generarCodigoPedido(): String =
     "MB-" + (1000..9999).random()
+
+/**
+ * El carrito no es un tipo que Android sepa guardar por sí solo, así que se
+ * guarda solo lo indispensable: la lista plana [id, cantidad, id, cantidad...].
+ * Al restaurar, cada id se busca en el catálogo para volver a armar el Producto.
+ */
+private val carritoSaver = listSaver<List<ItemCarrito>, Int>(
+    save = { items -> items.flatMap { listOf(it.producto.id, it.cantidad) } },
+    restore = { datos ->
+        datos.chunked(2).mapNotNull { par ->
+            val producto = listaProductosFake.firstOrNull { it.id == par[0] }
+            producto?.let { ItemCarrito(producto = it, cantidad = par[1]) }
+        }
+    }
+)
+
+/** Mismo criterio para los datos de entrega: solo texto, que sí es guardable. */
+private val datosEntregaSaver = listSaver<DatosEntrega, String>(
+    save = { datos ->
+        listOf(datos.direccion, datos.referencia, datos.metodoPago, datos.horario)
+    },
+    restore = { datos ->
+        DatosEntrega(
+            direccion = datos[0] as String,
+            referencia = datos[1] as String,
+            metodoPago = datos[2] as String,
+            horario = datos[3] as String
+        )
+    }
+)
 
 /**
  * Agrega el producto al carrito; si ya existe, solo suma la cantidad.
