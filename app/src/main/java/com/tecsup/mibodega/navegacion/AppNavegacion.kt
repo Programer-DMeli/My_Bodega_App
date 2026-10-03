@@ -1,13 +1,22 @@
 package com.tecsup.mibodega.navegacion
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tecsup.mibodega.ui.cliente.modelo.ItemCarrito
@@ -19,6 +28,8 @@ import com.tecsup.mibodega.ui.cliente.screens.detalle.DetalleProductoScreen
 import com.tecsup.mibodega.ui.cliente.screens.inicio.InicioScreen
 import com.tecsup.mibodega.ui.cliente.screens.login.LoginScreen
 import com.tecsup.mibodega.ui.cliente.screens.registro.RegistroScreen
+import com.tecsup.mibodega.ui.componentes.BarraNavegacion
+import com.tecsup.mibodega.ui.componentes.PantallaPendiente
 
 /**
  * "Director de orquesta" de la navegación en la arquitectura Single-Activity.
@@ -26,6 +37,11 @@ import com.tecsup.mibodega.ui.cliente.screens.registro.RegistroScreen
  * - Instancia el NavController con [rememberNavController].
  * - Configura el [NavHost] vinculando las [Rutas] con cada pantalla Compose.
  * - Administra el estado global del carrito mediante State Hoisting.
+ *
+ * Además hospeda el `Scaffold` principal de la app: la NavigationBar va en su
+ * `bottomBar` y envuelve al NavHost, de modo que la barra sigue visible
+ * mientras el usuario salta entre las pestañas principales (Inicio, Categorías,
+ * Pedidos y Perfil) y desaparece en las pantallas de flujo (Detalle, Carrito...).
  *
  * Sin ViewModel: el estado vive en `remember { mutableStateOf(...) }` aquí arriba,
  * y cada pantalla es "hoja" (stateless) que solo recibe datos y callbacks.
@@ -40,128 +56,188 @@ fun AppNavegacion() {
     //    varias pantallas (Inicio, Detalle, Carrito): es el "state hoisting".
     var carrito by remember { mutableStateOf<List<ItemCarrito>>(emptyList()) }
 
-    // 3) El NavHost es el equivalente al "fragment container" de la arquitectura
-    //    clásica, pero aquí cada destino es una función @Composable.
-    NavHost(
-        navController = navController,
-        startDestination = Rutas.BIENVENIDA
-    ) {
+    // 3) Destino visible ahora mismo: es lo que marca la pestaña seleccionada
+    //    en la barra (el estado del NavHost leído como State, sin ViewModel).
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val rutaActual = backStackEntry?.destination?.route
 
-        // ---- Pantalla 1: Bienvenida ----
-        composable(Rutas.BIENVENIDA) {
-            BienvenidaScreen(
-                onRegistrarse = { navController.navigate(Rutas.REGISTRO) },
-                onIniciarSesion = { navController.navigate(Rutas.LOGIN) },
-                onTerminos = { /* TODO: abrir términos y condiciones */ }
-            )
-        }
-
-        // ---- Pantalla 2: Login ----
-        composable(Rutas.LOGIN) {
-            LoginScreen(
-                onVolver = { navController.popBackStack() },
-                onIniciarSesion = { _, _ ->
-                    // Sesión iniciada: se limpia el welcome para que el "atrás"
-                    // del sistema no devuelva al usuario a la pantalla inicial.
-                    navController.navigate(Rutas.INICIO) {
-                        popUpTo(Rutas.BIENVENIDA) { inclusive = true }
-                    }
-                },
-                onCrearCuenta = {
-                    navController.navigate(Rutas.REGISTRO) {
-                        popUpTo(Rutas.LOGIN) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        // ---- Pantalla 3: Crear cuenta ----
-        composable(Rutas.REGISTRO) {
-            RegistroScreen(
-                onVolver = { navController.popBackStack() },
-                onCrearCuenta = { _, _, _, _ ->
-                    // Al crear la cuenta no tiene sentido volver a Bienvenida.
-                    navController.navigate(Rutas.INICIO) {
-                        popUpTo(Rutas.BIENVENIDA) { inclusive = true }
-                    }
-                }
-            )
-        }
-
-        // ---- Pantalla 4: Inicio / catálogo ----
-        composable(Rutas.INICIO) {
-            InicioScreen(
-                productos = listaProductosFake,
-                cantidadCarrito = carrito.sumOf { it.cantidad },
-                onVerCarrito = { navController.navigate(Rutas.CARRITO) },
-                onProductoClick = { producto ->
-                    navController.navigate(Rutas.detalle(producto.id))
-                },
-                onAgregarProducto = { producto ->
-                    carrito = agregarOSumarProducto(carrito, producto, 1)
-                }
-            )
-        }
-
-        // ---- Pantalla 5: Detalle del producto (ruta paramétrica) ----
-        composable(
-            route = Rutas.DETALLE,
-            arguments = listOf(
-                navArgument(Rutas.ARG_PRODUCTO_ID) { type = NavType.IntType }
-            )
-        ) { backStackEntry ->
-            val productoId = backStackEntry.arguments?.getInt(Rutas.ARG_PRODUCTO_ID) ?: 0
-            val producto = listaProductosFake.firstOrNull { it.id == productoId }
-                ?: listaProductosFake.first()
-
-            DetalleProductoScreen(
-                producto = producto,
-                onVolver = { navController.popBackStack() },
-                onAgregarAlCarrito = { productoSeleccionado, cantidad ->
-                    carrito = agregarOSumarProducto(carrito, productoSeleccionado, cantidad)
-                    navController.popBackStack()
-                }
-            )
-        }
-
-        // ---- Pantalla 6: Carrito ----
-        composable(Rutas.CARRITO) {
-            CarritoScreen(
-                carrito = carrito,
-                onVolver = { navController.popBackStack() },
-                onIncrementar = { producto ->
-                    carrito = carrito.map {
-                        if (it.producto.id == producto.id) {
-                            it.copy(cantidad = it.cantidad + 1)
-                        } else {
-                            it
+    // 4) Scaffold de la app: la barra inferior vive aquí y no dentro de cada
+    //    pantalla, para que no desaparezca al cambiar de pestaña.
+    Scaffold(
+        // Cada pantalla ya pide sus insets con safeDrawingPadding(), así que
+        // el Scaffold no debe añadirlos otra vez (evita el doble padding).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = {
+            // Solo en las pestañas principales tiene sentido la barra.
+            if (Rutas.esRutaPrincipal(rutaActual)) {
+                BarraNavegacion(
+                    destinoActual = rutaActual.orEmpty(),
+                    onDestinoSeleccionado = { ruta ->
+                        navController.navigate(ruta) {
+                            // El stack de pestañas se apoya siempre en Inicio (no
+                            // en Bienvenida, que ya se cerró al entrar): así el
+                            // "atrás" desde Inicio sale de la app.
+                            popUpTo(Rutas.INICIO) { saveState = true }
+                            // No apilar la misma pestaña dos veces y recuperar
+                            // el estado previo (scroll, filtros) de esa pestaña.
+                            launchSingleTop = true
+                            restoreState = true
                         }
                     }
-                },
-                onDecrementar = { producto ->
-                    carrito = carrito.mapNotNull { item ->
-                        when {
-                            item.producto.id != producto.id -> item
-                            item.cantidad > 1 -> item.copy(cantidad = item.cantidad - 1)
-                            else -> null
+                )
+            }
+        }
+    ) { paddingInterno ->
+
+        // 5) El NavHost es el equivalente al "fragment container" de la
+        //    arquitectura clásica, pero aquí cada destino es una función @Composable.
+        NavHost(
+            navController = navController,
+            startDestination = Rutas.BIENVENIDA,
+            modifier = Modifier.padding(paddingInterno)
+        ) {
+
+            // ---- Pantalla 1: Bienvenida ----
+            composable(Rutas.BIENVENIDA) {
+                BienvenidaScreen(
+                    onRegistrarse = { navController.navigate(Rutas.REGISTRO) },
+                    onIniciarSesion = { navController.navigate(Rutas.LOGIN) },
+                    onTerminos = { /* TODO: abrir términos y condiciones */ }
+                )
+            }
+
+            // ---- Pantalla 2: Login ----
+            composable(Rutas.LOGIN) {
+                LoginScreen(
+                    onVolver = { navController.popBackStack() },
+                    onIniciarSesion = { _, _ ->
+                        // Sesión iniciada: se limpia el welcome para que el "atrás"
+                        // del sistema no devuelva al usuario a la pantalla inicial.
+                        navController.navigate(Rutas.INICIO) {
+                            popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                        }
+                    },
+                    onCrearCuenta = {
+                        navController.navigate(Rutas.REGISTRO) {
+                            popUpTo(Rutas.LOGIN) { inclusive = true }
                         }
                     }
-                },
-                onEliminar = { producto ->
-                    carrito = carrito.filterNot { it.producto.id == producto.id }
-                },
-                onContinuarPedido = { navController.navigate(Rutas.DATOS_ENTREGA) }
-            )
-        }
+                )
+            }
 
-        // ---- Pantalla 7: Datos de entrega (se implementa en el paso 6) ----
-        composable(Rutas.DATOS_ENTREGA) {
+            // ---- Pantalla 3: Crear cuenta ----
+            composable(Rutas.REGISTRO) {
+                RegistroScreen(
+                    onVolver = { navController.popBackStack() },
+                    onCrearCuenta = { _, _, _, _ ->
+                        // Al crear la cuenta no tiene sentido volver a Bienvenida.
+                        navController.navigate(Rutas.INICIO) {
+                            popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                        }
+                    }
+                )
+            }
 
-        }
+            // ---- Pestaña 1: Inicio / catálogo ----
+            composable(Rutas.INICIO) {
+                InicioScreen(
+                    productos = listaProductosFake,
+                    cantidadCarrito = carrito.sumOf { it.cantidad },
+                    onVerCarrito = { navController.navigate(Rutas.CARRITO) },
+                    onProductoClick = { producto ->
+                        navController.navigate(Rutas.detalle(producto.id))
+                    },
+                    onAgregarProducto = { producto ->
+                        carrito = agregarOSumarProducto(carrito, producto, 1)
+                    }
+                )
+            }
 
-        // ---- Pantalla 8: Confirmación (se implementa en el paso 7) ----
-        composable(Rutas.CONFIRMACION) {
+            // ---- Pestaña 2: Categorías (se completa en su paso) ----
+            composable(Rutas.CATEGORIAS) {
+                PantallaPendiente(
+                    titulo = "Categorías",
+                    icono = Icons.AutoMirrored.Filled.List
+                )
+            }
 
+            // ---- Pestaña 3: Pedidos (se completa en su paso) ----
+            composable(Rutas.PEDIDOS) {
+                PantallaPendiente(
+                    titulo = "Mis pedidos",
+                    icono = Icons.Default.Receipt
+                )
+            }
+
+            // ---- Pestaña 4: Perfil (se completa en su paso) ----
+            composable(Rutas.PERFIL) {
+                PantallaPendiente(
+                    titulo = "Mi perfil",
+                    icono = Icons.Default.Person
+                )
+            }
+
+            // ---- Pantalla 5: Detalle del producto (ruta paramétrica) ----
+            composable(
+                route = Rutas.DETALLE,
+                arguments = listOf(
+                    navArgument(Rutas.ARG_PRODUCTO_ID) { type = NavType.IntType }
+                )
+            ) { backStackEntryDetalle ->
+                val productoId =
+                    backStackEntryDetalle.arguments?.getInt(Rutas.ARG_PRODUCTO_ID) ?: 0
+                val producto = listaProductosFake.firstOrNull { it.id == productoId }
+                    ?: listaProductosFake.first()
+
+                DetalleProductoScreen(
+                    producto = producto,
+                    onVolver = { navController.popBackStack() },
+                    onAgregarAlCarrito = { productoSeleccionado, cantidad ->
+                        carrito = agregarOSumarProducto(carrito, productoSeleccionado, cantidad)
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+            // ---- Pantalla 6: Carrito ----
+            composable(Rutas.CARRITO) {
+                CarritoScreen(
+                    carrito = carrito,
+                    onVolver = { navController.popBackStack() },
+                    onIncrementar = { producto ->
+                        carrito = carrito.map { item ->
+                            if (item.producto.id == producto.id) {
+                                item.copy(cantidad = item.cantidad + 1)
+                            } else {
+                                item
+                            }
+                        }
+                    },
+                    onDecrementar = { producto ->
+                        carrito = carrito.mapNotNull { item ->
+                            when {
+                                item.producto.id != producto.id -> item
+                                item.cantidad > 1 -> item.copy(cantidad = item.cantidad - 1)
+                                else -> null
+                            }
+                        }
+                    },
+                    onEliminar = { producto ->
+                        carrito = carrito.filterNot { it.producto.id == producto.id }
+                    },
+                    onContinuarPedido = { navController.navigate(Rutas.DATOS_ENTREGA) }
+                )
+            }
+
+            // ---- Pantalla 7: Datos de entrega (se implementa en el paso 6) ----
+            composable(Rutas.DATOS_ENTREGA) {
+
+            }
+
+            // ---- Pantalla 8: Confirmación (se implementa en el paso 7) ----
+            composable(Rutas.CONFIRMACION) {
+
+            }
         }
     }
 }

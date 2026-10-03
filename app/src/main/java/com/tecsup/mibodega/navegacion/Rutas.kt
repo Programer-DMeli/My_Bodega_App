@@ -27,6 +27,15 @@ object Rutas {
     /** Pantalla 4: catálogo de productos (home del cliente). */
     const val INICIO = "inicio"
 
+    /** Pestaña 2: listado de categorías. */
+    const val CATEGORIAS = "categorias"
+
+    /** Pestaña 3: historial de pedidos del cliente. */
+    const val PEDIDOS = "pedidos"
+
+    /** Pestaña 4: datos del cliente. */
+    const val PERFIL = "perfil"
+
     /** Pantalla 5: detalle de un producto. Es paramétrica. */
     const val DETALLE = "detalle/{productoId}"
 
@@ -47,4 +56,18 @@ object Rutas {
      * Ejemplo: `Rutas.detalle(3)` -> "detalle/3"
      */
     fun detalle(productoId: Int): String = "detalle/$productoId"
+
+    /**
+     * Destinos de la barra inferior. Se comportan como las "pestañas" de la app:
+     * el NavHost las mantiene en el back stack y al cambiar entre ellas se
+     * guardan/restanuran sus estados.
+     */
+    val RUTAS_PRINCIPALES = listOf(INICIO, CATEGORIAS, PEDIDOS, PERFIL)
+
+    /**
+     * ¿La ruta actual es una de las pestañas principales?
+     * Se usa para mostrar la NavigationBar solo en esos destinos
+     * (no en Detalle, Carrito, etc.).
+     */
+    fun esRutaPrincipal(ruta: String?): Boolean = ruta in RUTAS_PRINCIPALES
 }
