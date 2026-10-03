@@ -11,10 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
@@ -37,13 +39,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tecsup.mibodega.ui.cliente.modelo.CATEGORIA_TODOS
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
 import com.tecsup.mibodega.ui.cliente.modelo.listaCategorias
+import com.tecsup.mibodega.ui.cliente.modelo.filtrarProductos
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
-import com.tecsup.mibodega.ui.componentes.FilaCategorias
+import com.tecsup.mibodega.ui.componentes.FilaChips
 import com.tecsup.mibodega.ui.componentes.ProductoCard
 import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
@@ -75,20 +80,19 @@ fun InicioScreen(
     onProductoClick: (Producto) -> Unit,
     onAgregarProducto: (Producto) -> Unit
 ) {
-// Selección única: un solo valor activo a la vez. rememberSaveable para que la
-// categoría elegida sobreviva al giro del celular y al cambiar de pestaña.
+// Búsqueda en tiempo real: cada tecla cambia textoBusqueda y recalcula la lista.
+// rememberSaveable: la categoría y el texto sobreviven al giro y al cambio de pestaña.
 var categoriaSeleccionada by rememberSaveable { mutableStateOf(listaCategorias.first()) }
 var textoBusqueda by rememberSaveable { mutableStateOf("") }
 
-// remember con claves: el filtrado solo se recalcula cuando cambia la lista,
-// la categoría o la búsqueda (no en cada recomposición).
+// Los dos filtros se combinan con AND dentro de filtrarProductos. remember con
+// claves: solo se recorre la lista cuando cambia algún criterio.
 val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqueda) {
-    productos.filter { producto ->
-        val coincideCategoria =
-            categoriaSeleccionada == CATEGORIA_TODOS || producto.categoria == categoriaSeleccionada
-        val coincideBusqueda = producto.nombre.contains(textoBusqueda, ignoreCase = true)
-        coincideCategoria && coincideBusqueda
-    }
+    filtrarProductos(
+        productos = productos,
+        categoriaSeleccionada = categoriaSeleccionada,
+        textoBusqueda = textoBusqueda
+    )
 }
 
     Scaffold(
@@ -128,8 +132,19 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                     .padding(top = 8.dp),
                 placeholder = { Text("Buscar productos...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                // Botón para borrar la búsqueda de un toque.
+                trailingIcon = if (textoBusqueda.isNotEmpty()) {
+                    {
+                        IconButton(onClick = { textoBusqueda = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Limpiar búsqueda")
+                        }
+                    }
+                } else {
+                    null
+                },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 colors = OutlinedTextFieldDefaults.colors(
                     unfocusedContainerColor = GrisClaro,
                     focusedContainerColor = GrisClaro,
@@ -162,10 +177,10 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                 )
             }
 
-            FilaCategorias(
-                categorias = listaCategorias,
-                categoriaSeleccionada = categoriaSeleccionada,
-                onCategoriaSeleccionada = { categoriaSeleccionada = it }
+            FilaChips(
+                opciones = listaCategorias,
+                seleccionado = categoriaSeleccionada,
+                onSeleccion = { categoriaSeleccionada = it }
             )
 
             LazyColumn(
@@ -185,7 +200,10 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                 // Estado vacío: se muestra como un ítem más de la lista.
                 if (productosFiltrados.isEmpty()) {
                     item(key = "lista_vacia") {
-                        MensajeSinProductos(categoria = categoriaSeleccionada)
+                        MensajeSinProductos(
+                            categoria = categoriaSeleccionada,
+                            busqueda = textoBusqueda
+                        )
                     }
                 }
             }
@@ -196,7 +214,7 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
 // Sub-composables PRIVADOS: solo los usa esta pantalla.
 
 @Composable
-private fun MensajeSinProductos(categoria: String) {
+private fun MensajeSinProductos(categoria: String, busqueda: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,10 +228,18 @@ private fun MensajeSinProductos(categoria: String) {
             modifier = Modifier.size(48.dp)
         )
         Spacer(Modifier.height(12.dp))
+        // Muestra los dos criterios activos para que se vea cuál falló.
+        val mensaje = when {
+            busqueda.isNotBlank() && categoria != CATEGORIA_TODOS ->
+                "Sin resultados para \"$busqueda\" en \"$categoria\""
+            busqueda.isNotBlank() -> "Sin resultados para \"$busqueda\""
+            else -> "No hay productos en \"$categoria\""
+        }
         Text(
-            text = "No hay productos en \"$categoria\"",
+            text = mensaje,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
     }
 }

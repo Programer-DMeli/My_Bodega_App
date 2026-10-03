@@ -19,24 +19,25 @@ import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
 
 /**
- * Filtro de categorías: un [LazyRow] de chips con SELECCIÓN ÚNICA.
+ * Filtro de opciones: un [LazyRow] de chips con SELECCIÓN ÚNICA.
+ * En Inicio son las categorías; en Datos de entrega, el pago y el horario.
  *
- * Es un componente "hoja": no guarda qué categoría está activa, la recibe.
- * Así el filtro puede vivir en cualquier pantalla y el estado sigue siendo
- * de quien lo usa (en Inicio, `categoriaSeleccionada` con rememberSaveable).
+ * Es un componente "hoja": no guarda qué opción está activa, la recibe. El mismo
+ * control sirve para las categorías de Inicio y para el pago/horario de la
+ * entrega, porque quien lo usa decide qué lista le pasa y dónde guarda el valor
+ * (en ambas pantallas, con rememberSaveable).
  *
- * Solo se dibujan los chips que entran en pantalla, aunque la lista de
- * categorías crezca.
+ * Solo se dibujan los chips que entran en pantalla, aunque la lista crezca.
  *
- * @param categorias categorías a mostrar (la primera suele ser "Todos")
- * @param categoriaSeleccionada categoría activa: solo un chip queda resaltado
- * @param onCategoriaSeleccionada avisa el chip que se tocó
+ * @param opciones lista a mostrar (la primera suele ser la que no filtra)
+ * @param seleccionada valor activo: solo un chip queda resaltado
+ * @param onSeleccion avisa el chip que se tocó
  */
 @Composable
-fun FilaCategorias(
-    categorias: List<String>,
-    categoriaSeleccionada: String,
-    onCategoriaSeleccionada: (String) -> Unit,
+fun FilaChips(
+    opciones: List<String>,
+    seleccionado: String,
+    onSeleccion: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyRow(
@@ -44,18 +45,18 @@ fun FilaCategorias(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(categorias, key = { categoria -> categoria }) { categoria ->
-            ChipCategoria(
-                texto = categoria,
-                seleccionado = categoria == categoriaSeleccionada,
-                onClick = { onCategoriaSeleccionada(categoria) }
+        items(opciones, key = { opcion -> opcion }) { opcion ->
+            Chip(
+                texto = opcion,
+                seleccionado = opcion == seleccionado,
+                onClick = { onSeleccion(opcion) }
             )
         }
     }
 }
 
 @Composable
-private fun ChipCategoria(
+private fun Chip(
     texto: String,
     seleccionado: Boolean,
     onClick: () -> Unit

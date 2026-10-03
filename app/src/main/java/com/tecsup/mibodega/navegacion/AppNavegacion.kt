@@ -19,12 +19,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.tecsup.mibodega.ui.cliente.modelo.DatosEntrega
 import com.tecsup.mibodega.ui.cliente.modelo.ItemCarrito
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
+import com.tecsup.mibodega.ui.cliente.modelo.total
 import com.tecsup.mibodega.ui.cliente.screens.bienvenida.BienvenidaScreen
 import com.tecsup.mibodega.ui.cliente.screens.carrito.CarritoScreen
+import com.tecsup.mibodega.ui.cliente.screens.confirmacion.ConfirmacionScreen
 import com.tecsup.mibodega.ui.cliente.screens.detalle.DetalleProductoScreen
+import com.tecsup.mibodega.ui.cliente.screens.entrega.DatosEntregaScreen
 import com.tecsup.mibodega.ui.cliente.screens.detalle.ProductoNoEncontradoScreen
 import com.tecsup.mibodega.ui.cliente.screens.inicio.InicioScreen
 import com.tecsup.mibodega.ui.cliente.screens.login.LoginScreen
@@ -56,6 +60,16 @@ fun AppNavegacion() {
     // 2) Estado global del carrito. Se declara acá arriba porque lo usan
     //    varias pantallas (Inicio, Detalle, Carrito): es el "state hoisting".
     var carrito by remember { mutableStateOf<List<ItemCarrito>>(emptyList()) }
+
+    // Datos que captura la pantalla de entrega y lee la confirmación.
+    var datosEntrega by remember {
+        mutableStateOf(
+            DatosEntrega(direccion = "", referencia = "", metodoPago = "", horario = "")
+        )
+    }
+    var codigoPedido by remember { mutableStateOf("") }
+    // El total se congela al confirmar: el carrito se vacía al volver al inicio.
+    var totalPedido by remember { mutableStateOf(0.0) }
 
     // 3) Destino visible ahora mismo: es lo que marca la pestaña seleccionada
     //    en la barra (el estado del NavHost leído como State, sin ViewModel).
@@ -242,18 +256,51 @@ fun AppNavegacion() {
                 )
             }
 
-            // ---- Pantalla 7: Datos de entrega (se implementa en el paso 6) ----
+            // ---- Pantalla 7: Datos de entrega ----
             composable(Rutas.DATOS_ENTREGA) {
-
+                DatosEntregaScreen(
+                    carrito = carrito,
+                    onVolver = { navController.popBackStack() },
+                    onConfirmar = { datos ->
+                        datosEntrega = datos
+                        codigoPedido = generarCodigoPedido()
+                        totalPedido = carrito.total
+                        // popUpTo: se borra el historial del flujo de compra
+                        // (carrito y datos de entrega) y la confirmación queda
+                        // como única pantalla: el usuario no puede retroceder
+                        // hacia el carrito desde el cierre del pedido.
+                        navController.navigate(Rutas.CONFIRMACION) {
+                            popUpTo(Rutas.INICIO) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
 
-            // ---- Pantalla 8: Confirmación (se implementa en el paso 7) ----
+            // ---- Pantalla 8: Confirmación ----
             composable(Rutas.CONFIRMACION) {
-
+                ConfirmacionScreen(
+                    codigoPedido = codigoPedido,
+                    datosEntrega = datosEntrega,
+                    total = totalPedido,
+                    onVolverAlInicio = {
+                        // Cierre del flujo: carrito vacío y pila limpia, para
+                        // empezar de cero al volver al catálogo.
+                        carrito = emptyList()
+                        navController.navigate(Rutas.INICIO) {
+                            popUpTo(Rutas.CONFIRMACION) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
         }
     }
 }
+
+/** Código de pedido fake: "MB-" seguido de 4 dígitos. */
+private fun generarCodigoPedido(): String =
+    "MB-" + (1000..9999).random()
 
 /**
  * Agrega el producto al carrito; si ya existe, solo suma la cantidad.

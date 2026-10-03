@@ -39,14 +39,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tecsup.mibodega.ui.cliente.modelo.ItemCarrito
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
+import com.tecsup.mibodega.ui.cliente.modelo.costoDelivery
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
+import com.tecsup.mibodega.ui.cliente.modelo.subtotal
+import com.tecsup.mibodega.ui.cliente.modelo.total
 import com.tecsup.mibodega.ui.componentes.BotonPrimario
 import com.tecsup.mibodega.ui.componentes.SelectorCantidad
 import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
-
-private const val COSTO_DELIVERY = 4.00
 
 /**
  * Pantalla 6: Mi carrito (mockup "Cliente").
@@ -69,14 +70,9 @@ fun CarritoScreen(
     onContinuarPedido: () -> Unit
 ) {
     // Derivado del estado: se recalcula solo cuando cambia la lista.
-    val subtotal by remember(carrito) {
-        derivedStateOf { carrito.sumOf { it.producto.precio * it.cantidad } }
-    }
-    // Con el carrito vacío no se cobra delivery.
-    val delivery = if (carrito.isEmpty()) 0.0 else COSTO_DELIVERY
-    val total by remember(subtotal, delivery) {
-        derivedStateOf { subtotal + delivery }
-    }
+    val subtotal by remember(carrito) { derivedStateOf { carrito.subtotal } }
+    val delivery by remember(carrito) { derivedStateOf { costoDelivery(carrito) } }
+    val total by remember(carrito) { derivedStateOf { carrito.total } }
 
     Column(
         modifier = Modifier
