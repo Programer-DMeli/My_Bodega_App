@@ -3,7 +3,6 @@ package com.tecsup.mibodega.ui.componentes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -95,19 +94,22 @@ fun ProductoCard(
 
             Spacer(Modifier.width(8.dp))
 
-            Box(
+            // El círculo, el área táctil y la onda de ripple son el mismo nodo:
+            // si el fondo va en un Box aparte, el IconButton (48.dp) desborda
+            // fuera del círculo visible de 36.dp.
+            IconButton(
+                onClick = onAgregar,
                 modifier = Modifier
                     .size(36.dp)
-                    .background(VerdeBodega, CircleShape)
+                    .clip(CircleShape)
+                    .background(VerdeBodega)
             ) {
-                IconButton(onClick = onAgregar) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Agregar ${producto.nombre}",
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Agregar ${producto.nombre}",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
