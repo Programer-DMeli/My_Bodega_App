@@ -18,22 +18,25 @@ object Rutas {
     /** Pantalla 1: bienvenida / login / registro. Punto de entrada de la app. */
     const val BIENVENIDA = "bienvenida"
 
-    /** Pantalla 2: formulario para crear la cuenta. */
+    /** Pantalla 2: iniciar sesión con celular y contraseña. */
+    const val LOGIN = "login"
+
+    /** Pantalla 3: formulario para crear la cuenta. */
     const val REGISTRO = "registro"
 
-    /** Pantalla 3: catálogo de productos (home del cliente). */
+    /** Pantalla 4: catálogo de productos (home del cliente). */
     const val INICIO = "inicio"
 
-    /** Pantalla 4: detalle de un producto. Es paramétrica. */
+    /** Pantalla 5: detalle de un producto. Es paramétrica. */
     const val DETALLE = "detalle/{productoId}"
 
-    /** Pantalla 5: carrito de compras. */
+    /** Pantalla 6: carrito de compras. */
     const val CARRITO = "carrito"
 
-    /** Pantalla 6: formulario de datos de entrega. */
+    /** Pantalla 7: formulario de datos de entrega. */
     const val DATOS_ENTREGA = "datos_entrega"
 
-    /** Pantalla 7: confirmación del pedido. */
+    /** Pantalla 8: confirmación del pedido. */
     const val CONFIRMACION = "confirmacion"
 
     /** Nombre del argumento que viaja en la ruta [DETALLE]. */

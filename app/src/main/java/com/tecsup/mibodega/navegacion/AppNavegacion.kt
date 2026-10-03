@@ -17,6 +17,7 @@ import com.tecsup.mibodega.ui.cliente.screens.bienvenida.BienvenidaScreen
 import com.tecsup.mibodega.ui.cliente.screens.carrito.CarritoScreen
 import com.tecsup.mibodega.ui.cliente.screens.detalle.DetalleProductoScreen
 import com.tecsup.mibodega.ui.cliente.screens.inicio.InicioScreen
+import com.tecsup.mibodega.ui.cliente.screens.login.LoginScreen
 import com.tecsup.mibodega.ui.cliente.screens.registro.RegistroScreen
 
 /**
@@ -50,12 +51,31 @@ fun AppNavegacion() {
         composable(Rutas.BIENVENIDA) {
             BienvenidaScreen(
                 onRegistrarse = { navController.navigate(Rutas.REGISTRO) },
-                onIniciarSesion = { navController.navigate(Rutas.INICIO) },
+                onIniciarSesion = { navController.navigate(Rutas.LOGIN) },
                 onTerminos = { /* TODO: abrir términos y condiciones */ }
             )
         }
 
-        // ---- Pantalla 2: Registro ----
+        // ---- Pantalla 2: Login ----
+        composable(Rutas.LOGIN) {
+            LoginScreen(
+                onVolver = { navController.popBackStack() },
+                onIniciarSesion = { _, _ ->
+                    // Sesión iniciada: se limpia el welcome para que el "atrás"
+                    // del sistema no devuelva al usuario a la pantalla inicial.
+                    navController.navigate(Rutas.INICIO) {
+                        popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                    }
+                },
+                onCrearCuenta = {
+                    navController.navigate(Rutas.REGISTRO) {
+                        popUpTo(Rutas.LOGIN) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // ---- Pantalla 3: Crear cuenta ----
         composable(Rutas.REGISTRO) {
             RegistroScreen(
                 onVolver = { navController.popBackStack() },
@@ -68,7 +88,7 @@ fun AppNavegacion() {
             )
         }
 
-        // ---- Pantalla 3: Inicio / catálogo ----
+        // ---- Pantalla 4: Inicio / catálogo ----
         composable(Rutas.INICIO) {
             InicioScreen(
                 productos = listaProductosFake,
@@ -83,7 +103,7 @@ fun AppNavegacion() {
             )
         }
 
-        // ---- Pantalla 4: Detalle del producto (ruta paramétrica) ----
+        // ---- Pantalla 5: Detalle del producto (ruta paramétrica) ----
         composable(
             route = Rutas.DETALLE,
             arguments = listOf(
@@ -104,7 +124,7 @@ fun AppNavegacion() {
             )
         }
 
-        // ---- Pantalla 5: Carrito ----
+        // ---- Pantalla 6: Carrito ----
         composable(Rutas.CARRITO) {
             CarritoScreen(
                 carrito = carrito,
@@ -134,12 +154,12 @@ fun AppNavegacion() {
             )
         }
 
-        // ---- Pantalla 6: Datos de entrega (se implementa en el paso 6) ----
+        // ---- Pantalla 7: Datos de entrega (se implementa en el paso 6) ----
         composable(Rutas.DATOS_ENTREGA) {
 
         }
 
-        // ---- Pantalla 7: Confirmación (se implementa en el paso 7) ----
+        // ---- Pantalla 8: Confirmación (se implementa en el paso 7) ----
         composable(Rutas.CONFIRMACION) {
 
         }
