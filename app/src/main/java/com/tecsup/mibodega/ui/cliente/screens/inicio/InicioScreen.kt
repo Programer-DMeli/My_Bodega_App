@@ -228,10 +228,8 @@ private fun MensajeSinProductos(categoria: String, busqueda: String) {
             modifier = Modifier.size(48.dp)
         )
         Spacer(Modifier.height(12.dp))
-        // Muestra los dos criterios activos para que se vea cuál falló.
         val mensaje = when {
-            busqueda.isNotBlank() && categoria != CATEGORIA_TODOS ->
-                "Sin resultados para \"$busqueda\" en \"$categoria\""
+            // Hay texto: la búsqueda es global, la categoría no cuenta.
             busqueda.isNotBlank() -> "Sin resultados para \"$busqueda\""
             else -> "No hay productos en \"$categoria\""
         }

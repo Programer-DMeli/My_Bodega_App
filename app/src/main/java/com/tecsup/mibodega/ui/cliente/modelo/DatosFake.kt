@@ -54,6 +54,6 @@ val listaProductosFake = listOf(
         descripcion = "Bebida gaseosa sabor cola. Ideal para compartir en familia.",
         precio = 6.50,
         categoria = "Bebidas",
-        imagenResId = R.drawable.coca_cola
+        imagenResId = R.drawable.coca_colaaa
     )
 )

@@ -5,7 +5,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Pruebas del filtro combinado categoría + texto.
+ * Pruebas del filtro de productos.
  * Son funciones puras, así que se prueban sin Compose ni emulador.
  */
 class FiltroProductosTest {
@@ -36,21 +36,28 @@ class FiltroProductosTest {
     }
 
     @Test
-    fun `texto y categoria se combinan con AND`() {
-        // "Arroz" es de Abarrotes: coincide con ambas condiciones.
-        val conAbarrotes = filtrarProductos(catalogo, "Abarrotes", "arroz")
-        assertEquals(1, conAbarrotes.size)
-        assertEquals("Arroz Costeño", conAbarrotes.first().nombre)
+    fun `el texto busca en todas las categorias`() {
+        // "Arroz" es de Abarrotes, pero si el usuario está en otra categoría
+        // debe encontrarlo igual: la categoría no limita la búsqueda.
+        val resultado = filtrarProductos(catalogo, "Bebidas", "arroz")
 
-        // El mismo texto con otra categoría no debe devolver nada:
-        // el filtro de categoría no se reemplaza por el de texto.
-        val conBebidas = filtrarProductos(catalogo, "Bebidas", "arroz")
-        assertTrue(conBebidas.isEmpty())
+        assertEquals(1, resultado.size)
+        assertEquals("Arroz Costeño", resultado.first().nombre)
+    }
+
+    @Test
+    fun `la categoria vuelve a limitar cuando se borra la busqueda`() {
+        val conTexto = filtrarProductos(catalogo, "Bebidas", "arroz")
+        val sinTexto = filtrarProductos(catalogo, "Bebidas", "")
+
+        assertEquals(1, conTexto.size)
+        assertEquals("Coca-Cola Original", sinTexto.first().nombre)
+        assertTrue(sinTexto.none { it.nombre == "Arroz Costeño" })
     }
 
     @Test
     fun `ignora espacios sobrantes en la busqueda`() {
-        val resultado = filtrarProductos(catalogo, CATEGORIA_TODOS, "   leche  ")
+        val resultado = filtrarProductos(catalogo, "Bebidas", "   leche  ")
 
         assertEquals(1, resultado.size)
         assertEquals("Leche Gloria", resultado.first().nombre)
@@ -58,7 +65,7 @@ class FiltroProductosTest {
 
     @Test
     fun `busca tambien en la descripcion`() {
-        val resultado = filtrarProductos(catalogo, CATEGORIA_TODOS, "grano largo")
+        val resultado = filtrarProductos(catalogo, "Snacks", "grano largo")
 
         assertEquals(1, resultado.size)
         assertEquals("Arroz Costeño", resultado.first().nombre)

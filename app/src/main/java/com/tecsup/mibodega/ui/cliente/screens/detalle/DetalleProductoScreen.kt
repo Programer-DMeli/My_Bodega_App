@@ -197,6 +197,7 @@ private fun ImagenProducto(producto: Producto) {
 private fun DetalleProductoPreview() {
     BodegaTheme {
         DetalleProductoScreen(
+
             producto = listaProductosFake.first { it.nombre == "Coca-Cola Original" },
             onVolver = {},
             onAgregarAlCarrito = { _, _ -> }
