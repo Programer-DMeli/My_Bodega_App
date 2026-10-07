@@ -55,5 +55,21 @@ val listaProductosFake = listOf(
         precio = 6.50,
         categoria = "Bebidas",
         imagenResId = R.drawable.coca_colaaa
+    ),
+    Producto(
+        id = 6,
+        nombre = "Papas Clásicas Jappy",
+        descripcion = "Bolsa de Papas Clásicas Jappy, crujientes y saladas.",
+        precio = 3.80,
+        categoria = "Snacks",
+        imagenResId = R.drawable.snack
+    ),
+    Producto(
+        id = 7,
+        nombre = "Inka Chips Jalapeño",
+        descripcion = "Bolsa de Inka Chips sabor Jalapeño, toque picante artesanal.",
+        precio = 5.50,
+        categoria = "Snacks",
+        imagenResId = R.drawable.snack_2
     )
 )

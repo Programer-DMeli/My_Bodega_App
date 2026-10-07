@@ -40,10 +40,6 @@ import com.tecsup.mibodega.ui.theme.BodegaTheme
 /**
  * Pantalla 2: Iniciar sesión.
  *
- * No guarda estado de sesión ni llama a ninguna API: es "hoja" (stateless).
- * Mantiene su propio formulario con `rememberSaveable` (no ViewModel) y,
- * cuando el usuario confirma, entrega los datos ya capturados hacia arriba.
- *
  * @param onVolver vuelve a la pantalla de bienvenida
  * @param onIniciarSesion recibe (telefono, clave) si el formulario es válido
  * @param onCrearCuenta lleva al formulario de registro
@@ -93,7 +89,7 @@ fun LoginScreen(
             valor = telefono,
             onValorCambia = {
                 telefono = it
-                mensajeError = ""
+                mensajeError = "Ingresa tu Telefono valido"
             },
             teclado = KeyboardType.Phone,
             icono = rememberVectorPainter(Icons.Default.Phone)

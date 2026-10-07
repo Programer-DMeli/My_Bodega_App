@@ -48,7 +48,7 @@ import com.tecsup.mibodega.ui.cliente.modelo.Producto
 import com.tecsup.mibodega.ui.cliente.modelo.listaCategorias
 import com.tecsup.mibodega.ui.cliente.modelo.filtrarProductos
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
-import com.tecsup.mibodega.ui.componentes.FilaChips
+import com.tecsup.mibodega.ui.componentes.FilaCategorias
 import com.tecsup.mibodega.ui.componentes.ProductoCard
 import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
@@ -177,10 +177,10 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                 )
             }
 
-            FilaChips(
-                opciones = listaCategorias,
-                seleccionado = categoriaSeleccionada,
-                onSeleccion = { categoriaSeleccionada = it }
+            FilaCategorias(
+                categorias = listaCategorias,
+                categoriaSeleccionada = categoriaSeleccionada,
+                onCategoriaSeleccionada = { categoriaSeleccionada = it }
             )
 
             LazyColumn(

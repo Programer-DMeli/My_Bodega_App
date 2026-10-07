@@ -60,8 +60,6 @@ fun AppNavegacion() {
 
     // 2) Estado global del carrito. Se declara acá arriba porque lo usan
     //    varias pantallas (Inicio, Detalle, Carrito): es el "state hoisting".
-    //    rememberSaveable: con "remember" el carrito se perdería al rotar el
-    //    celular, porque un cambio de configuración recrea la Activity.
     var carrito by rememberSaveable(stateSaver = carritoSaver) {
         mutableStateOf<List<ItemCarrito>>(emptyList())
     }
