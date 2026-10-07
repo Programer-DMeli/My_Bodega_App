@@ -1,18 +1,4 @@
 package com.tecsup.mibodega.navegacion
-
-/**
- * Definición de rutas y constantes de navegación para "Mi Bodega - App Cliente".
- * Sigue la arquitectura de Actividad Única (Single-Activity Architecture):
- * una sola Activity ([com.tecsup.mibodega.MainActivity]) y un solo NavHost,
- * donde cada `composable(...)` es una pantalla.
- *
- * Reglas:
- * - Cada ruta es una `const val` para que nunca haya typos al navegar.
- * - Las rutas con parámetros usan `{argumento}` y se construyen con la función
- *   helper correspondiente (ej. [detalle]), nunca escribiendo la ruta a mano.
- * - Los nombres de los argumentos también son constantes ([ARG_PRODUCTO_ID])
- *   y deben coincidir con los usados en `navArgument(...)`.
- */
 object Rutas {
 
     /** Pantalla 1: bienvenida / login / registro. Punto de entrada de la app. */
@@ -35,6 +21,9 @@ object Rutas {
 
     /** Pestaña 4: datos del cliente. */
     const val PERFIL = "perfil"
+
+    /** Pantalla de favoritos. */
+    const val FAVORITOS = "favoritos"
 
     /** Pantalla 5: detalle de un producto. Es paramétrica. */
     const val DETALLE = "detalle/{productoId}"

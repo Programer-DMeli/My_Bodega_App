@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -30,18 +32,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
+import com.tecsup.mibodega.ui.theme.RojoPrecio
 import com.tecsup.mibodega.ui.theme.VerdeBodega
 
-/**
- * Tarjeta de producto usada como ítem de la lista de Inicio.
- * Solo muestra datos y avisa cuando la tocan o cuando tocan "+";
- * no sabe nada de navegación ni del carrito.
- */
 @Composable
 fun ProductoCard(
     producto: Producto,
     onClick: () -> Unit,
     onAgregar: () -> Unit,
+    esFavorito: Boolean = false,
+    onFavoritoClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -55,8 +55,6 @@ fun ProductoCard(
             modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ContentScale.Crop recorta la foto para llenar el cuadro
-            // sin deformarla, aunque el png no sea cuadrado.
             Image(
                 painter = painterResource(producto.imagenResId),
                 contentDescription = producto.nombre,
@@ -94,9 +92,16 @@ fun ProductoCard(
 
             Spacer(Modifier.width(8.dp))
 
-            // El círculo, el área táctil y la onda de ripple son el mismo nodo:
-            // si el fondo va en un Box aparte, el IconButton (48.dp) desborda
-            // fuera del círculo visible de 36.dp.
+            if (onFavoritoClick != null) {
+                IconButton(onClick = onFavoritoClick) {
+                    Icon(
+                        imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorito",
+                        tint = if (esFavorito) RojoPrecio else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             IconButton(
                 onClick = onAgregar,
                 modifier = Modifier

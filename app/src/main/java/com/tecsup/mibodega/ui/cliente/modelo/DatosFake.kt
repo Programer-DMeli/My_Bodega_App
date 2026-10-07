@@ -1,16 +1,6 @@
 package com.tecsup.mibodega.ui.cliente.modelo
 
 import com.tecsup.mibodega.R
-
-/**
- * Datos de ejemplo (fake) que viven solo en memoria: se recrean cada vez que
- * se abre la app, no se guardan en ningún lado.
- *
- * Cada producto apunta a su foto en `res/drawable`. Cuando conecten Room o
- * una API, este archivo se reemplaza por un Repository real, pero las pantallas
- * no cambian porque ya reciben una `List<Producto>` como parámetro.
- */
-/** Categoría "Todos": la que no filtra por categoría. */
 const val CATEGORIA_TODOS = "Todos"
 
 val listaCategorias = listOf(CATEGORIA_TODOS, "Bebidas", "Abarrotes", "Snacks")

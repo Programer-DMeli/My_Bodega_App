@@ -20,15 +20,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,17 +53,6 @@ import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
 
-/**
- * Pantalla 6: Mi carrito (mockup "Cliente").
- *
- * No guarda estado propio: el carrito vive en AppNavegacion (state hoisting) y
- * cada cambio (sumar, restar, eliminar) se avisa hacia arriba con callbacks.
- *
- * El cálculo del subtotal y el total es REACTIVO: `carrito` es un estado de
- * Compose, así que al cambiar una cantidad el NavHost recompone esta pantalla
- * y los importes se recalculan solos. Aquí solo se memoriza el resultado con
- * `remember(carrito)` para no recorrer la lista en cada recomposición.
- */
 @Composable
 fun CarritoScreen(
     carrito: List<ItemCarrito>,
@@ -69,7 +62,29 @@ fun CarritoScreen(
     onEliminar: (Producto) -> Unit,
     onContinuarPedido: () -> Unit
 ) {
-    // Derivado del estado: se recalcula solo cuando cambia la lista.
+    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
+
+    if (productoAEliminar != null) {
+        AlertDialog(
+            onDismissRequest = { productoAEliminar = null },
+            title = { Text("Eliminar producto") },
+            text = { Text("¿Estás seguro de que deseas eliminar ${productoAEliminar?.nombre} del carrito?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    productoAEliminar?.let { onEliminar(it) }
+                    productoAEliminar = null
+                }) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { productoAEliminar = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     val subtotal by remember(carrito) { derivedStateOf { carrito.subtotal } }
     val delivery by remember(carrito) { derivedStateOf { costoDelivery(carrito) } }
     val total by remember(carrito) { derivedStateOf { carrito.total } }
@@ -98,7 +113,7 @@ fun CarritoScreen(
                         item = item,
                         onIncrementar = { onIncrementar(item.producto) },
                         onDecrementar = { onDecrementar(item.producto) },
-                        onEliminar = { onEliminar(item.producto) }
+                        onEliminar = { productoAEliminar = item.producto }
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }
@@ -114,8 +129,6 @@ fun CarritoScreen(
         )
     }
 }
-
-// Sub-composables PRIVADOS: solo los usa esta pantalla.
 
 @Composable
 private fun EncabezadoCarrito(cantidadItems: Int, onVolver: () -> Unit) {
@@ -184,7 +197,6 @@ private fun FilaCarrito(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Foto real del producto; recorta para dejarla cuadrada.
         Image(
             painter = painterResource(item.producto.imagenResId),
             contentDescription = item.producto.nombre,
@@ -207,7 +219,6 @@ private fun FilaCarrito(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            // Importe de la línea: precio x cantidad, reactivo.
             Text(
                 text = "S/ %.2f".format(item.producto.precio * item.cantidad),
                 style = MaterialTheme.typography.titleMedium,
@@ -288,9 +299,9 @@ private fun FilaResumen(etiqueta: String, valor: Double) {
 @Composable
 private fun CarritoPreview() {
     val carritoEjemplo = listOf(
-        ItemCarrito(listaProductosFake[4], 1), // Coca-Cola
-        ItemCarrito(listaProductosFake[0], 2), // Arroz Costeño
-        ItemCarrito(listaProductosFake[2], 1)  // Leche Gloria
+        ItemCarrito(listaProductosFake[4], 1),
+        ItemCarrito(listaProductosFake[0], 2),
+        ItemCarrito(listaProductosFake[2], 1)
     )
     BodegaTheme {
         CarritoScreen(
@@ -303,4 +314,3 @@ private fun CarritoPreview() {
         )
     }
 }
-

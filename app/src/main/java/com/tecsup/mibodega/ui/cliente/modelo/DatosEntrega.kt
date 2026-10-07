@@ -1,9 +1,5 @@
 package com.tecsup.mibodega.ui.cliente.modelo
 
-/**
- * Datos que el cliente entrega para recibir el pedido.
- * Los captura PantallaDatosEntrega y viaja hasta la confirmación.
- */
 data class DatosEntrega(
     val direccion: String,
     val referencia: String,

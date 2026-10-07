@@ -17,10 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,7 +44,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.tecsup.mibodega.ui.cliente.modelo.CATEGORIA_TODOS
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
@@ -54,55 +56,75 @@ import com.tecsup.mibodega.ui.theme.BodegaTheme
 import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
 
-/**
- * Pantalla 4: Inicio / Productos (mockup "Cliente").
- *
- * Aporta la TopAppBar con el badge del carrito y el contenido: buscador,
- * LazyRow de categorías y un [LazyColumn] con la lista de productos.
- * El [LazyColumn] es la clave aquí: solo crea las filas que se están viendo,
- * así puede listar cientos de productos sin coste.
- *
- * La NavigationBar inferior NO vive aquí, sino en el Scaffold principal
- * (AppNavegacion), para que siga visible al cambiar de pestaña.
- *
- * El filtrado por categoría/búsqueda es estado local con `remember` (sin
- * ViewModel) y se recalcula en cada recomposición.
- *
- * @param productos lista completa (fake por ahora, luego vendrá de un Repository)
- * @param cantidadCarrito para el badge del carrito en la topBar
- */
+enum class OrdenPrecio {
+    DEFECTO, MENOR_MAYOR, MAYOR_MENOR
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InicioScreen(
     productos: List<Producto> = listaProductosFake,
     cantidadCarrito: Int,
+    favoritosIds: Set<Int>,
     onVerCarrito: () -> Unit,
     onProductoClick: (Producto) -> Unit,
-    onAgregarProducto: (Producto) -> Unit
+    onAgregarProducto: (Producto) -> Unit,
+    onToggleFavorito: (Producto) -> Unit
 ) {
-// Búsqueda en tiempo real: cada tecla cambia textoBusqueda y recalcula la lista.
-// rememberSaveable: la categoría y el texto sobreviven al giro y al cambio de pestaña.
-var categoriaSeleccionada by rememberSaveable { mutableStateOf(listaCategorias.first()) }
-var textoBusqueda by rememberSaveable { mutableStateOf("") }
+    var categoriaSeleccionada by rememberSaveable { mutableStateOf(listaCategorias.first()) }
+    var textoBusqueda by rememberSaveable { mutableStateOf("") }
+    var ordenPrecio by rememberSaveable { mutableStateOf(OrdenPrecio.DEFECTO) }
+    var mostrarMenuOrden by remember { mutableStateOf(false) }
 
-// Los dos filtros se combinan con AND dentro de filtrarProductos. remember con
-// claves: solo se recorre la lista cuando cambia algún criterio.
-val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqueda) {
-    filtrarProductos(
-        productos = productos,
-        categoriaSeleccionada = categoriaSeleccionada,
-        textoBusqueda = textoBusqueda
-    )
-}
+    val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqueda, ordenPrecio) {
+        val filtrados = filtrarProductos(
+            productos = productos,
+            categoriaSeleccionada = categoriaSeleccionada,
+            textoBusqueda = textoBusqueda
+        )
+        when (ordenPrecio) {
+            OrdenPrecio.MENOR_MAYOR -> filtrados.sortedBy { it.precio }
+            OrdenPrecio.MAYOR_MENOR -> filtrados.sortedByDescending { it.precio }
+            OrdenPrecio.DEFECTO -> filtrados
+        }
+    }
 
     Scaffold(
-        // Insets y NavigationBar los pone el Scaffold principal (AppNavegacion),
-        // así esta pantalla solo aporta su TopAppBar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
                 title = { Text("Mi Bodega", fontWeight = FontWeight.Bold) },
                 actions = {
+                    IconButton(onClick = { mostrarMenuOrden = true }) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Ordenar por precio")
+                    }
+                    DropdownMenu(
+                        expanded = mostrarMenuOrden,
+                        onDismissRequest = { mostrarMenuOrden = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Ordenar por defecto") },
+                            onClick = {
+                                ordenPrecio = OrdenPrecio.DEFECTO
+                                mostrarMenuOrden = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Precio: menor a mayor") },
+                            onClick = {
+                                ordenPrecio = OrdenPrecio.MENOR_MAYOR
+                                mostrarMenuOrden = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Precio: mayor a menor") },
+                            onClick = {
+                                ordenPrecio = OrdenPrecio.MAYOR_MENOR
+                                mostrarMenuOrden = false
+                            }
+                        )
+                    }
+
                     IconButton(onClick = onVerCarrito) {
                         BadgedBox(
                             badge = {
@@ -132,7 +154,6 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                     .padding(top = 8.dp),
                 placeholder = { Text("Buscar productos...") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                // Botón para borrar la búsqueda de un toque.
                 trailingIcon = if (textoBusqueda.isNotEmpty()) {
                     {
                         IconButton(onClick = { textoBusqueda = "" }) {
@@ -153,8 +174,6 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                 )
             )
 
-            // Filtro por categoría (selección única) + buscador: ambos alimentan la
-            // misma lista. El contador muestra que el filtro sí está actuando.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -188,16 +207,16 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
                 contentPadding = PaddingValues(vertical = 12.dp),
                 modifier = Modifier.fillMaxSize()
             ) {
-                // El key evita recomponer y recargar imágenes al reordenar/filtrar.
                 items(productosFiltrados, key = { producto -> producto.id }) { producto ->
                     ProductoCard(
                         producto = producto,
                         onClick = { onProductoClick(producto) },
-                        onAgregar = { onAgregarProducto(producto) }
+                        onAgregar = { onAgregarProducto(producto) },
+                        esFavorito = producto.id in favoritosIds,
+                        onFavoritoClick = { onToggleFavorito(producto) }
                     )
                 }
 
-                // Estado vacío: se muestra como un ítem más de la lista.
                 if (productosFiltrados.isEmpty()) {
                     item(key = "lista_vacia") {
                         MensajeSinProductos(
@@ -210,8 +229,6 @@ val productosFiltrados = remember(productos, categoriaSeleccionada, textoBusqued
         }
     }
 }
-
-// Sub-composables PRIVADOS: solo los usa esta pantalla.
 
 @Composable
 private fun MensajeSinProductos(categoria: String, busqueda: String) {
@@ -229,7 +246,6 @@ private fun MensajeSinProductos(categoria: String, busqueda: String) {
         )
         Spacer(Modifier.height(12.dp))
         val mensaje = when {
-            // Hay texto: la búsqueda es global, la categoría no cuenta.
             busqueda.isNotBlank() -> "Sin resultados para \"$busqueda\""
             else -> "No hay productos en \"$categoria\""
         }
@@ -238,19 +254,6 @@ private fun MensajeSinProductos(categoria: String, busqueda: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
-        )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun InicioPreview() {
-    BodegaTheme {
-        InicioScreen(
-            cantidadCarrito = 3,
-            onVerCarrito = {},
-            onProductoClick = {},
-            onAgregarProducto = {}
         )
     }
 }
