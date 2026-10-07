@@ -34,7 +34,7 @@ import com.tecsup.mibodega.ui.cliente.screens.entrega.DatosEntregaScreen
 import com.tecsup.mibodega.ui.cliente.screens.favoritos.FavoritosScreen
 import com.tecsup.mibodega.ui.cliente.screens.inicio.InicioScreen
 import com.tecsup.mibodega.ui.cliente.screens.login.LoginScreen
-import com.tecsup.mibodega.ui.cliente.screens.pedidos.PedidoItem
+import com.tecsup.mibodega.ui.cliente.modelo.PedidoItem
 import com.tecsup.mibodega.ui.cliente.screens.pedidos.PedidosScreen
 import com.tecsup.mibodega.ui.cliente.screens.perfil.PerfilScreen
 import com.tecsup.mibodega.ui.cliente.screens.registro.RegistroScreen
@@ -44,6 +44,7 @@ import com.tecsup.mibodega.ui.theme.BodegaTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 @Composable
 fun AppNavegacion() {
     val navController = rememberNavController()
@@ -56,6 +57,7 @@ fun AppNavegacion() {
     }
     var favoritosIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var pedidosList by remember { mutableStateOf<List<PedidoItem>>(emptyList()) }
+    var ultimoPedido by remember { mutableStateOf<PedidoItem?>(null) }
     var isDarkMode by remember { mutableStateOf(false) }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -280,8 +282,14 @@ fun AppNavegacion() {
                                 fecha = fechaActual,
                                 total = totalFinal,
                                 estado = "Confirmado",
-                                detalle = detalleStr
+                                detalle = detalleStr,
+                                items = carrito,
+                                direccion = "Av. Principal 123",
+                                esDelivery = esDelivery,
+                                subtotal = subtotal,
+                                costoDelivery = costoEnvio
                             )
+                            ultimoPedido = nuevoPedido
                             pedidosList = listOf(nuevoPedido) + pedidosList
                             carrito = emptyList()
 
@@ -295,6 +303,7 @@ fun AppNavegacion() {
                 // ---- Pantalla 8: Confirmación ----
                 composable(Rutas.CONFIRMACION) {
                     ConfirmacionScreen(
+                        pedido = ultimoPedido,
                         onVolverInicio = {
                             navController.navigate(Rutas.INICIO) {
                                 popUpTo(Rutas.INICIO) { inclusive = true }

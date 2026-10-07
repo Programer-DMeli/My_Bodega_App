@@ -38,7 +38,7 @@ import com.tecsup.mibodega.ui.theme.VerdeBodega
 
 @Composable
 fun PerfilScreen(
-    nombreUsuario: String = "Cliente Mi Bodega",
+    nombreUsuario: String = "Meliton Carbajal",
     telefonoUsuario: String = "987654321",
     isDarkMode: Boolean,
     onToggleDarkMode: (Boolean) -> Unit,

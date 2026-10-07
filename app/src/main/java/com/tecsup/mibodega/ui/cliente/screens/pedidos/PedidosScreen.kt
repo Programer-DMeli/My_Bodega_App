@@ -28,16 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tecsup.mibodega.ui.cliente.modelo.PedidoItem
 import com.tecsup.mibodega.ui.theme.GrisClaro
 import com.tecsup.mibodega.ui.theme.VerdeBodega
-
-data class PedidoItem(
-    val id: String,
-    val fecha: String,
-    val total: Double,
-    val estado: String,
-    val detalle: String
-)
 
 @Composable
 fun PedidosScreen(
