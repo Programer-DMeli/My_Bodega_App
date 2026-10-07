@@ -40,16 +40,17 @@ import com.tecsup.mibodega.ui.theme.BodegaTheme
 /**
  * Pantalla 2: Iniciar sesión.
  *
- * No guarda estado de sesión ni llama a ninguna API: es "hoja" (stateless).
- * Mantiene su propio formulario con `rememberSaveable` (no ViewModel) y,
+ * Mantiene su propio formulario con `rememberSaveable` y,
  * cuando el usuario confirma, entrega los datos ya capturados hacia arriba.
  *
+ * @param mensajeErrorExterno mensaje de error proveniente de la validación de autenticación
  * @param onVolver vuelve a la pantalla de bienvenida
  * @param onIniciarSesion recibe (telefono, clave) si el formulario es válido
  * @param onCrearCuenta lleva al formulario de registro
  */
 @Composable
 fun LoginScreen(
+    mensajeErrorExterno: String = "",
     onVolver: () -> Unit,
     onIniciarSesion: (telefono: String, clave: String) -> Unit,
     onCrearCuenta: () -> Unit
@@ -57,7 +58,9 @@ fun LoginScreen(
     // ---- Estado local del formulario (rememberSaveable sobrevive a rotación) ----
     var telefono by rememberSaveable { mutableStateOf("") }
     var clave by rememberSaveable { mutableStateOf("") }
-    var mensajeError by rememberSaveable { mutableStateOf("") }
+    var mensajeErrorLocal by rememberSaveable { mutableStateOf("") }
+
+    val mensajeErrorActual = mensajeErrorExterno.ifEmpty { mensajeErrorLocal }
 
     // ---- Validación: se recalcula sola en cada recomposición ----
     val digitos = telefono.filter { it.isDigit() }.length
@@ -93,7 +96,7 @@ fun LoginScreen(
             valor = telefono,
             onValorCambia = {
                 telefono = it
-                mensajeError = ""
+                mensajeErrorLocal = ""
             },
             teclado = KeyboardType.Phone,
             icono = rememberVectorPainter(Icons.Default.Phone)
@@ -106,17 +109,17 @@ fun LoginScreen(
             valor = clave,
             onValorCambia = {
                 clave = it
-                mensajeError = ""
+                mensajeErrorLocal = ""
             },
             icono = rememberVectorPainter(Icons.Default.Lock),
             esContrasena = true
         )
 
         // El mensaje de error solo ocupa espacio cuando hay algo que avisar.
-        if (mensajeError.isNotEmpty()) {
+        if (mensajeErrorActual.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = mensajeError,
+                text = mensajeErrorActual,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error
             )
@@ -132,7 +135,7 @@ fun LoginScreen(
                 if (error == null) {
                     onIniciarSesion(telefono.trim(), clave)
                 } else {
-                    mensajeError = error
+                    mensajeErrorLocal = error
                 }
             }
         )

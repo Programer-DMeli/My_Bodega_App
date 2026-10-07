@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,23 +51,32 @@ import com.tecsup.mibodega.ui.theme.VerdeBodega
  * datos ya listos hacia arriba y quien coordina decide a dónde ir.
  *
  * @param onVolver regresa a la pantalla anterior
- * @param onCrearCuenta recibe (nombre, telefono, direccion, referencia)
+ * @param onCrearCuenta recibe (nombre, telefono, clave, direccion, referencia)
  */
 @Composable
 fun RegistroScreen(
     onVolver: () -> Unit,
-    onCrearCuenta: (nombre: String, telefono: String, direccion: String, referencia: String) -> Unit
+    onCrearCuenta: (nombre: String, telefono: String, clave: String, direccion: String, referencia: String) -> Unit
 ) {
     var nombre by rememberSaveable { mutableStateOf("") }
     var telefono by rememberSaveable { mutableStateOf("") }
+    var clave by rememberSaveable { mutableStateOf("") }
     var direccion by rememberSaveable { mutableStateOf("") }
     var referencia by rememberSaveable { mutableStateOf("") }
+    var mensajeError by rememberSaveable { mutableStateOf("") }
 
     // ---- Validación local: se recalcula sola en cada recomposición ----
     val digitos = telefono.filter { it.isDigit() }.length
     val camposCompletos = nombre.isNotBlank() &&
         digitos == CANTIDAD_DIGITOS_CELULAR &&
+        clave.length >= LONGITUD_MINIMA_CLAVE &&
         direccion.isNotBlank()
+
+    fun validar(): String? = when {
+        digitos != CANTIDAD_DIGITOS_CELULAR -> "Ingresa un celular de $CANTIDAD_DIGITOS_CELULAR dígitos"
+        clave.length < LONGITUD_MINIMA_CLAVE -> "La contraseña debe tener al menos $LONGITUD_MINIMA_CLAVE caracteres"
+        else -> null
+    }
 
     Column(
         modifier = Modifier
@@ -99,14 +109,20 @@ fun RegistroScreen(
         CampoTexto(
             etiqueta = "Nombre completo",
             valor = nombre,
-            onValorCambia = { nombre = it }
+            onValorCambia = {
+                nombre = it
+                mensajeError = ""
+            }
         )
         Spacer(Modifier.height(16.dp))
 
         CampoTexto(
             etiqueta = "Teléfono",
             valor = telefono,
-            onValorCambia = { telefono = it },
+            onValorCambia = {
+                telefono = it
+                mensajeError = ""
+            },
             teclado = KeyboardType.Phone,
             icono = rememberVectorPainter(Icons.Default.Phone)
         )
@@ -122,9 +138,32 @@ fun RegistroScreen(
         Spacer(Modifier.height(16.dp))
 
         CampoTexto(
+            etiqueta = "Contraseña",
+            valor = clave,
+            onValorCambia = {
+                clave = it
+                mensajeError = ""
+            },
+            icono = rememberVectorPainter(Icons.Default.Lock),
+            esContrasena = true
+        )
+        if (clave.isNotBlank() && clave.length < LONGITUD_MINIMA_CLAVE) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Mínimo $LONGITUD_MINIMA_CLAVE caracteres",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+        Spacer(Modifier.height(16.dp))
+
+        CampoTexto(
             etiqueta = "Dirección de entrega",
             valor = direccion,
-            onValorCambia = { direccion = it },
+            onValorCambia = {
+                direccion = it
+                mensajeError = ""
+            },
             placeholder = "Av. Los Olivos 123"
         )
         Spacer(Modifier.height(16.dp))
@@ -136,18 +175,33 @@ fun RegistroScreen(
             placeholder = "Frente al parque"
         )
 
+        if (mensajeError.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = mensajeError,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
         Spacer(Modifier.height(28.dp))
 
         BotonPrimario(
             texto = "Crear cuenta",
             habilitado = camposCompletos,
             onClick = {
-                onCrearCuenta(
-                    nombre.trim(),
-                    telefono.trim(),
-                    direccion.trim(),
-                    referencia.trim()
-                )
+                val error = validar()
+                if (error == null) {
+                    onCrearCuenta(
+                        nombre.trim(),
+                        telefono.trim(),
+                        clave,
+                        direccion.trim(),
+                        referencia.trim()
+                    )
+                } else {
+                    mensajeError = error
+                }
             }
         )
 
@@ -175,6 +229,7 @@ fun RegistroScreen(
 }
 
 private const val CANTIDAD_DIGITOS_CELULAR = 9
+private const val LONGITUD_MINIMA_CLAVE = 6
 
 @Composable
 private fun EncabezadoRegistro(onVolver: () -> Unit) {
@@ -211,7 +266,6 @@ private fun EncabezadoRegistro(onVolver: () -> Unit) {
 @Composable
 private fun RegistroPreview() {
     BodegaTheme {
-        RegistroScreen(onVolver = {}, onCrearCuenta = { _, _, _, _ -> })
+        RegistroScreen(onVolver = {}, onCrearCuenta = { _, _, _, _, _ -> })
     }
 }
-

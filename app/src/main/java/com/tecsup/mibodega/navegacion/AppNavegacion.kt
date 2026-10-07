@@ -21,6 +21,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.tecsup.mibodega.ui.cliente.modelo.ItemCarrito
 import com.tecsup.mibodega.ui.cliente.modelo.Producto
+import com.tecsup.mibodega.ui.cliente.modelo.Usuario
 import com.tecsup.mibodega.ui.cliente.modelo.listaProductosFake
 import com.tecsup.mibodega.ui.cliente.screens.bienvenida.BienvenidaScreen
 import com.tecsup.mibodega.ui.cliente.screens.carrito.CarritoScreen
@@ -53,9 +54,10 @@ fun AppNavegacion() {
     // 1) El controlador de navegación sobrevive a las recomposiciones.
     val navController = rememberNavController()
 
-    // 2) Estado global del carrito. Se declara acá arriba porque lo usan
-    //    varias pantallas (Inicio, Detalle, Carrito): es el "state hoisting".
+    // 2) Estado global del carrito y de usuarios registrados.
     var carrito by remember { mutableStateOf<List<ItemCarrito>>(emptyList()) }
+    var usuariosRegistrados by remember { mutableStateOf<Map<String, Usuario>>(emptyMap()) }
+    var errorLogin by remember { mutableStateOf("") }
 
     // 3) Destino visible ahora mismo: es lo que marca la pestaña seleccionada
     //    en la barra (el estado del NavHost leído como State, sin ViewModel).
@@ -110,15 +112,32 @@ fun AppNavegacion() {
             // ---- Pantalla 2: Login ----
             composable(Rutas.LOGIN) {
                 LoginScreen(
-                    onVolver = { navController.popBackStack() },
-                    onIniciarSesion = { _, _ ->
-                        // Sesión iniciada: se limpia el welcome para que el "atrás"
-                        // del sistema no devuelva al usuario a la pantalla inicial.
-                        navController.navigate(Rutas.INICIO) {
-                            popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                    mensajeErrorExterno = errorLogin,
+                    onVolver = {
+                        errorLogin = ""
+                        navController.popBackStack()
+                    },
+                    onIniciarSesion = { telefono, clave ->
+                        val usuario = usuariosRegistrados[telefono]
+                        when {
+                            usuario == null -> {
+                                errorLogin = "El número de celular no está registrado"
+                            }
+                            usuario.clave != clave -> {
+                                errorLogin = "Contraseña incorrecta"
+                            }
+                            else -> {
+                                errorLogin = ""
+                                // Sesión iniciada: se limpia el welcome para que el "atrás"
+                                // del sistema no devuelva al usuario a la pantalla inicial.
+                                navController.navigate(Rutas.INICIO) {
+                                    popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                                }
+                            }
                         }
                     },
                     onCrearCuenta = {
+                        errorLogin = ""
                         navController.navigate(Rutas.REGISTRO) {
                             popUpTo(Rutas.LOGIN) { inclusive = true }
                         }
@@ -130,10 +149,13 @@ fun AppNavegacion() {
             composable(Rutas.REGISTRO) {
                 RegistroScreen(
                     onVolver = { navController.popBackStack() },
-                    onCrearCuenta = { _, _, _, _ ->
-                        // Al crear la cuenta no tiene sentido volver a Bienvenida.
-                        navController.navigate(Rutas.INICIO) {
-                            popUpTo(Rutas.BIENVENIDA) { inclusive = true }
+                    onCrearCuenta = { nombre, telefono, clave, direccion, referencia ->
+                        val nuevoUsuario = Usuario(nombre, telefono, clave, direccion, referencia)
+                        usuariosRegistrados = usuariosRegistrados + (telefono to nuevoUsuario)
+                        errorLogin = ""
+                        // Una vez creada la cuenta, navegar al login para que inicie sesión con su usuario
+                        navController.navigate(Rutas.LOGIN) {
+                            popUpTo(Rutas.REGISTRO) { inclusive = true }
                         }
                     }
                 )
